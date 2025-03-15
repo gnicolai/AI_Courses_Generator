@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="mb-0">Impostazioni</h2>
+                </div>
+                <div class="card-body">
+                    {% if success %}
+                    <div class="alert alert-success" role="alert">
+                        <i class="fas fa-check-circle me-2"></i> Le impostazioni sono state salvate con successo.
+                    </div>
+                    {% endif %}
+
+                    <!-- Stato delle API -->
+                    <div class="mb-4">
+                        <h5 class="mb-3">Stato delle API</h5>
+                        <div class="card border-light mb-3">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span>Provider attivo:</span>
+                                    <span class="badge {% if api_status.using_mock %}bg-warning{% else %}bg-success{% endif %}">
+                                        {{ api_status.current_provider }}
+                                        {% if api_status.using_mock %} (mock){% endif %}
+                                    </span>
+                                </div>
+                                
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span>OpenAI API:</span>
+                                    <span class="badge {% if api_status.openai_configured %}bg-success{% else %}bg-danger{% endif %}">
+                                        {% if api_status.openai_configured %}Configurata{% else %}Non configurata{% endif %}
+                                    </span>
+                                </div>
+                                
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span>Deepseek API:</span>
+                                    <span class="badge {% if api_status.deepseek_configured %}bg-success{% else %}bg-danger{% endif %}">
+                                        {% if api_status.deepseek_configured %}Configurata{% else %}Non configurata{% endif %}
+                                    </span>
+                                </div>
+                                
+                                <div class="mt-3 small text-muted">
+                                    <p><i class="bi bi-info-circle me-1"></i> Le configurazioni delle API vengono caricate dal file .env se presente.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form action="/impostazioni" method="post">
+                        <div class="mb-4">
+                            <h5 class="mb-3">Provider AI</h5>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" name="ai_provider" id="providerDeepSeek" value="deepseek" 
+                                {% if config.ai_provider == 'deepseek' %}checked{% endif %}>
+                                <label class="form-check-label" for="providerDeepSeek">
+                                    DeepSeek
+                                </label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" name="ai_provider" id="providerOpenAI" value="openai" 
+                                {% if config.ai_provider == 'openai' %}checked{% endif %}>
+                                <label class="form-check-label" for="providerOpenAI">
+                                    OpenAI
+                                </label>
+                            </div>
+                            <div class="alert alert-info mt-2" role="alert">
+                                <i class="bi bi-info-circle me-2"></i> 
+                                Le chiavi API sono configurate nel file <code>.env</code>. I valori qui sotto mostrano le configurazioni correnti.
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <h5 class="mb-3">DeepSeek</h5>
+                            <div class="mb-3">
+                                <label for="deepseekApiKey" class="form-label">API Key</label>
+                                <div class="input-group mb-3">
+                                    <input type="text" class="form-control" id="deepseekApiKey" name="deepseek_api_key"
+                                        value="{{ config.deepseek_api_key_masked }}" readonly>
+                                    <span class="input-group-text bg-success text-white" {% if not api_status.deepseek_configured %}style="display:none"{% endif %}><i class="bi bi-check-circle"></i> Configurata</span>
+                                    <span class="input-group-text bg-danger text-white" {% if api_status.deepseek_configured %}style="display:none"{% endif %}><i class="bi bi-x-circle"></i> Non configurata</span>
+                                </div>
+                                <div class="form-text">Configurata nel file <code>.env</code> con la variabile <code>DEEPSEEK_API_KEY</code>.</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="deepseekBaseUrl" class="form-label">URL Base API</label>
+                                <input type="text" class="form-control" id="deepseekBaseUrl" name="deepseek_base_url"
+                                    value="{{ config.deepseek_base_url }}" readonly>
+                                <div class="form-text">Configurato nel file <code>.env</code> con la variabile <code>DEEPSEEK_BASE_URL</code>.</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="deepseekModel" class="form-label">Modello DeepSeek</label>
+                                <select class="form-select" id="deepseekModel" name="deepseek_model">
+                                    <option value="deepseek-chat" {% if config.deepseek_model == 'deepseek-chat' %}selected{% endif %}>DeepSeek V3 (deepseek-chat)</option>
+                                    <option value="deepseek-reasoner" {% if config.deepseek_model == 'deepseek-reasoner' %}selected{% endif %}>DeepSeek R1 (deepseek-reasoner)</option>
+                                </select>
+                                <div class="form-text">Seleziona il modello DeepSeek da utilizzare per la generazione dei contenuti.</div>
+                                <div class="alert alert-info mt-2">
+                                    <i class="bi bi-info-circle me-2"></i>
+                                    <strong>Modelli disponibili:</strong> DeepSeek offre due modelli principali: V3 è il modello standard, mentre R1 è più avanzato e fornisce risultati di qualità superiore con capacità di ragionamento avanzate.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <h5 class="mb-3">OpenAI</h5>
+                            <div class="mb-3">
+                                <label for="openaiApiKey" class="form-label">API Key</label>
+                                <div class="input-group mb-3">
+                                    <input type="text" class="form-control" id="openaiApiKey" name="openai_api_key"
+                                        value="{{ config.openai_api_key_masked }}" readonly>
+                                    <span class="input-group-text bg-success text-white" {% if not api_status.openai_configured %}style="display:none"{% endif %}><i class="bi bi-check-circle"></i> Configurata</span>
+                                    <span class="input-group-text bg-danger text-white" {% if api_status.openai_configured %}style="display:none"{% endif %}><i class="bi bi-x-circle"></i> Non configurata</span>
+                                </div>
+                                <div class="form-text">Configurata nel file <code>.env</code> con la variabile <code>OPENAI_API_KEY</code>.</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="openaiBaseUrl" class="form-label">URL Base API</label>
+                                <input type="text" class="form-control" id="openaiBaseUrl" name="openai_base_url"
+                                    value="{{ config.openai_base_url }}" readonly>
+                                <div class="form-text">Configurato nel file <code>.env</code> con la variabile <code>OPENAI_BASE_URL</code>.</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="openaiModel" class="form-label">Modello OpenAI</label>
+                                <select class="form-select" id="openaiModel" name="openai_model">
+                                    <option value="o1-preview" {% if config.openai_model == 'o1-preview' %}selected{% endif %}>o1-preview (Modello di punta più recente)</option>
+                                    <option value="o1" {% if config.openai_model == 'o1' %}selected{% endif %}>o1 (Variante del nome per lo stesso modello)</option>
+                                    <option value="gpt-4o-1" {% if config.openai_model == 'gpt-4o-1' %}selected{% endif %}>gpt-4o-1 (Possibile nome alternativo)</option>
+                                    <option value="o3-mini" {% if config.openai_model == 'o3-mini' %}selected{% endif %}>o3-mini (Modello efficiente per ragionamento STEM)</option>
+                                    <option value="gpt-4-turbo" {% if config.openai_model == 'gpt-4-turbo' %}selected{% endif %}>gpt-4-turbo (Versione stabile più diffusa)</option>
+                                    <option value="gpt-4" {% if config.openai_model == 'gpt-4' %}selected{% endif %}>gpt-4 (Versione standard)</option>
+                                    <option value="gpt-3.5-turbo" {% if config.openai_model == 'gpt-3.5-turbo' %}selected{% endif %}>gpt-3.5-turbo (Versione più accessibile)</option>
+                                </select>
+                                <div class="form-text">Seleziona il modello OpenAI da utilizzare per la generazione dei contenuti.</div>
+                                <div class="alert alert-info mt-2">
+                                    <i class="bi bi-info-circle me-2"></i>
+                                    <strong>Modello o1-preview:</strong> Da informazioni recenti, il modello più avanzato di OpenAI è probabilmente chiamato "o1-preview" invece di semplicemente "o1". Se la tua API key ha accesso a questo modello, selezionalo direttamente.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-warning" role="alert">
+                            <i class="bi bi-exclamation-triangle me-2"></i> 
+                            <strong>Nota:</strong> Per modificare le chiavi API o gli URL base, è necessario modificare il file <code>.env</code> nella root del progetto.
+                        </div>
+
+                        <div class="alert alert-info" role="alert">
+                            <i class="bi bi-info-circle me-2"></i> 
+                            <strong>Configurazione attuale:</strong> 
+                            Provider selezionato: <span class="badge bg-primary">{{ config.ai_provider }}</span>
+                            {% if config.ai_provider == 'deepseek' and api_status.deepseek_configured %}
+                                <span class="badge bg-success">Chiave API configurata</span>
+                            {% elif config.ai_provider == 'deepseek' and not api_status.deepseek_configured %}
+                                <span class="badge bg-danger">Chiave API non configurata</span>
+                            {% elif config.ai_provider == 'openai' and api_status.openai_configured %}
+                                <span class="badge bg-success">Chiave API configurata</span>
+                            {% elif config.ai_provider == 'openai' and not api_status.openai_configured %}
+                                <span class="badge bg-danger">Chiave API non configurata</span>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="/" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left me-2"></i> Torna alla Home
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save me-2"></i> Salva Provider Selezionato
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

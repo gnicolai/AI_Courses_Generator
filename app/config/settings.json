@@ -1,0 +1,9 @@
+{
+  "ai_provider": "deepseek",
+  "deepseek_api_key": "<inserisci-qui-la-tua-chiave-deepseek>",
+  "deepseek_base_url": "https://api.deepseek.com",
+  "openai_api_key": "<inserisci-qui-la-tua-chiave-openai>",
+  "openai_base_url": "https://api.openai.com",
+  "openai_model": "o1-preview",
+  "deepseek_model": "deepseek-reasoner"
+}

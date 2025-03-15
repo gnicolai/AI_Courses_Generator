@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="alert alert-success" role="alert">
+    <h4 class="alert-heading">Corso creato con successo!</h4>
+    <p>I parametri del corso sono stati salvati. Ora puoi procedere con la generazione della scaletta.</p>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h2 class="card-title h4 mb-0">Riepilogo Parametri del Corso</h2>
+    </div>
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-3">Titolo:</dt>
+            <dd class="col-sm-9">{{ titolo }}</dd>
+            
+            <dt class="col-sm-3">Descrizione:</dt>
+            <dd class="col-sm-9">{{ descrizione }}</dd>
+            
+            <dt class="col-sm-3">Pubblico target:</dt>
+            <dd class="col-sm-9">{{ pubblico_target }}</dd>
+            
+            <dt class="col-sm-3">Livello di complessità:</dt>
+            <dd class="col-sm-9">{{ livello_complessita }}</dd>
+            
+            <dt class="col-sm-3">Tono del corso:</dt>
+            <dd class="col-sm-9">{{ tono_corso }}</dd>
+            
+            {% if requisiti %}
+            <dt class="col-sm-3">Requisiti specifici:</dt>
+            <dd class="col-sm-9">{{ requisiti }}</dd>
+            {% endif %}
+            
+            {% if stile_scrittura %}
+            <dt class="col-sm-3">Stile di scrittura:</dt>
+            <dd class="col-sm-9">{{ stile_scrittura }}</dd>
+            {% endif %}
+        </dl>
+    </div>
+</div>
+
+{% if has_scaletta %}
+<div class="alert alert-info">
+    <p>La scaletta per questo corso è già stata generata.</p>
+    <a href="/corso/{{ corso_id }}/scaletta" class="btn btn-primary mt-2">Visualizza e Modifica Scaletta</a>
+</div>
+{% else %}
+<div class="d-grid gap-2">
+    <button id="generaScaletta" class="btn btn-primary btn-lg">Genera Scaletta del Corso</button>
+    
+    <div class="text-center mt-3 mb-3">
+        <div class="divider d-flex align-items-center">
+            <span class="mx-3 text-muted">oppure</span>
+        </div>
+    </div>
+    
+    <form action="/api/corso/{{ corso_id }}/genera-scaletta-redirect" method="post">
+        <button type="submit" class="btn btn-outline-primary btn-lg w-100">Genera Scaletta (Metodo Alternativo)</button>
+    </form>
+</div>
+
+<div id="loadingScaletta" class="text-center my-4 d-none">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Caricamento...</span>
+    </div>
+    <p class="mt-2">Generazione della scaletta in corso... Potrebbe richiedere fino a 30 secondi.</p>
+</div>
+
+<div id="risultatoScaletta" class="my-4 d-none">
+    <div class="alert alert-success">
+        <h4>Scaletta generata con successo!</h4>
+    </div>
+    
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h3 class="card-title h5 mb-0">Scaletta del Corso</h3>
+        </div>
+        <div class="card-body">
+            <div id="contenutoScaletta">
+                <!-- Qui verrà inserita la scaletta generata -->
+            </div>
+        </div>
+    </div>
+    
+    <div class="d-grid gap-2 mt-4">
+        <a id="btnScaletta" href="/corso/{{ corso_id }}/scaletta" class="btn btn-success btn-lg">
+            Visualizza e Modifica Scaletta
+        </a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+{% if not has_scaletta %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Variabili per gli elementi UI
+    const btnGeneraScaletta = document.getElementById('generaScaletta');
+    const loadingScaletta = document.getElementById('loadingScaletta');
+    const risultatoScaletta = document.getElementById('risultatoScaletta');
+    const contenutoScaletta = document.getElementById('contenutoScaletta');
+    
+    btnGeneraScaletta.addEventListener('click', function() {
+        // Mostra il loader e nascondi il pulsante
+        btnGeneraScaletta.classList.add('d-none');
+        loadingScaletta.classList.remove('d-none');
+        
+        // Chiama l'API per generare la scaletta
+        fetch('/api/corso/{{ corso_id }}/genera-scaletta', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({})
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Errore nella generazione della scaletta');
+            }
+            console.log("Risposta ricevuta dall'API");
+            return response.json();
+        })
+        .then(data => {
+            // Nascondi il loader e mostra il risultato
+            loadingScaletta.classList.add('d-none');
+            risultatoScaletta.classList.remove('d-none');
+            
+            console.log("Risposta API completa:", JSON.stringify(data));
+            
+            // Visualizza la scaletta
+            let scalettaHtml = '';
+            
+            if (data.success === true) {
+                console.log("Reindirizzamento a /corso/{{ corso_id }}/scaletta");
+                // Reindirizza alla pagina della scaletta
+                window.location.href = '/corso/{{ corso_id }}/scaletta';
+                return;
+            } else {
+                console.log("Errore nella risposta:", data.message);
+                // Errore nella risposta
+                scalettaHtml = '<div class="alert alert-danger">Si è verificato un errore nella generazione della scaletta: ' + 
+                               (data.message || 'Errore sconosciuto') + '</div>';
+                contenutoScaletta.innerHTML = scalettaHtml;
+            }
+        })
+        .catch(error => {
+            console.error('Errore:', error);
+            loadingScaletta.classList.add('d-none');
+            
+            // Mostra un messaggio di errore
+            risultatoScaletta.classList.remove('d-none');
+            contenutoScaletta.innerHTML = `
+                <div class="alert alert-danger">
+                    Si è verificato un errore durante la generazione della scaletta: ${error.message || 'Errore sconosciuto'}
+                </div>
+                <div class="d-grid gap-2 mt-4">
+                    <button id="retryScaletta" class="btn btn-warning">Riprova</button>
+                </div>
+            `;
+            
+            // Aggiungi handler per riprovare
+            document.getElementById('retryScaletta').addEventListener('click', function() {
+                risultatoScaletta.classList.add('d-none');
+                btnGeneraScaletta.classList.remove('d-none');
+            });
+        });
+    });
+});
+</script>
+{% endif %}
+{% endblock %} 

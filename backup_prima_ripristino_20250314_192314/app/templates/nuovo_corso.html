@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <form method="post" action="/nuovo-corso">
+            <div class="mb-3">
+                <label for="titolo" class="form-label">Titolo del Corso</label>
+                <input type="text" class="form-control" id="titolo" name="titolo" required>
+                <div class="form-text">Inserisci un titolo chiaro e descrittivo per il tuo corso.</div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="descrizione" class="form-label">Descrizione/Obiettivi</label>
+                <textarea class="form-control" id="descrizione" name="descrizione" rows="3" required></textarea>
+                <div class="form-text">Descrivi brevemente il corso e i suoi obiettivi principali.</div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="pubblico_target" class="form-label">Pubblico Target</label>
+                <input type="text" class="form-control" id="pubblico_target" name="pubblico_target" required>
+                <div class="form-text">A chi è destinato questo corso? (es. Principianti, Professionisti, Studenti universitari)</div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="livello_complessita" class="form-label">Livello di Complessità</label>
+                <select class="form-select" id="livello_complessita" name="livello_complessita" required>
+                    <option value="">-- Seleziona un livello --</option>
+                    <option value="Base">Base</option>
+                    <option value="Intermedio">Intermedio</option>
+                    <option value="Avanzato">Avanzato</option>
+                    <option value="Esperto">Esperto</option>
+                </select>
+            </div>
+            
+            <div class="mb-3">
+                <label for="tono" class="form-label">Tono del Corso</label>
+                <select class="form-select" id="tono" name="tono" required>
+                    <option value="">-- Seleziona un tono --</option>
+                    <option value="Formale">Formale</option>
+                    <option value="Professionale">Professionale</option>
+                    <option value="Conversazionale">Conversazionale</option>
+                    <option value="Accademico">Accademico</option>
+                    <option value="Didattico">Didattico</option>
+                </select>
+            </div>
+            
+            <div class="mb-3">
+                <label for="requisiti" class="form-label">Requisiti Specifici (opzionale)</label>
+                <textarea class="form-control" id="requisiti" name="requisiti" rows="2"></textarea>
+                <div class="form-text">Eventuali requisiti o conoscenze necessarie per seguire il corso.</div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="stile_scrittura" class="form-label">Stile di Scrittura (opzionale)</label>
+                <textarea class="form-control" id="stile_scrittura" name="stile_scrittura" rows="2"></textarea>
+                <div class="form-text">Specifica uno stile di scrittura particolare se desiderato.</div>
+            </div>
+            
+            <div class="d-grid gap-2">
+                <button type="submit" class="btn btn-primary btn-lg">Genera Scaletta</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %} 

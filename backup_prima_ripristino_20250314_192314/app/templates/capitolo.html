@@ -1,0 +1,477 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="mb-4">
+    <div class="d-flex justify-content-between align-items-center">
+        <h2>{{ capitolo.titolo }}</h2>
+        <div>
+            <a href="/corso/{{ corso_id }}/scaletta" class="btn btn-outline-primary me-2">Torna alla Scaletta</a>
+            <a href="/corso/{{ corso_id }}" class="btn btn-outline-secondary">Torna al Corso</a>
+        </div>
+    </div>
+    <p class="text-muted">Corso: {{ titolo_corso }}</p>
+</div>
+
+{% if not has_contenuto %}
+<div class="alert alert-info">
+    <h4 class="alert-heading">Nessun contenuto generato</h4>
+    <p>Il contenuto per questo capitolo non è ancora stato generato. Clicca sul pulsante qui sotto per generarlo.</p>
+    
+    <div class="d-grid gap-2 mt-3">
+        <button id="generaContenuto" class="btn btn-primary">Genera Contenuto</button>
+    </div>
+</div>
+
+<div id="loadingContenuto" class="text-center my-4 d-none">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Caricamento...</span>
+    </div>
+    <p class="mt-2">Generazione del contenuto in corso... Potrebbe richiedere fino a un minuto.</p>
+</div>
+{% endif %}
+
+<div id="contenutoCapitolo" class="card mb-4 {% if not has_contenuto %}d-none{% endif %}">
+    <div class="card-header bg-primary text-white">
+        <div class="d-flex justify-content-between align-items-center">
+            <h3 class="card-title h5 mb-0">Contenuto del Capitolo</h3>
+            <div>
+                <button id="editaContenuto" class="btn btn-sm btn-light">Modifica</button>
+                <button id="rigeneraContenuto" class="btn btn-sm btn-warning ms-2">Rigenera</button>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        {% if has_contenuto %}
+        <div id="contenuto-markdown" class="markdown-content">
+            {{ contenuto | safe }}
+        </div>
+        {% else %}
+        <div id="contenuto-markdown" class="markdown-content d-none"></div>
+        {% endif %}
+        
+        {% if has_contenuto %}
+        <div id="editor-contenuto" class="d-none">
+            <form id="form-edit-contenuto" method="post" action="/api/corso/{{ corso_id }}/capitolo/{{ capitolo_id }}/contenuto/edit">
+                <div class="mb-3">
+                    <textarea class="form-control" id="contenuto-textarea" name="contenuto" rows="20">{{ contenuto }}</textarea>
+                </div>
+                <div class="d-flex justify-content-end">
+                    <button type="button" id="annulla-edit" class="btn btn-secondary me-2">Annulla</button>
+                    <button type="submit" class="btn btn-primary">Salva Modifiche</button>
+                </div>
+            </form>
+        </div>
+        {% else %}
+        <div id="editor-contenuto" class="d-none">
+            <form id="form-edit-contenuto" method="post" action="/api/corso/{{ corso_id }}/capitolo/{{ capitolo_id }}/contenuto/edit">
+                <div class="mb-3">
+                    <textarea class="form-control" id="contenuto-textarea" name="contenuto" rows="20"></textarea>
+                </div>
+                <div class="d-flex justify-content-end">
+                    <button type="button" id="annulla-edit" class="btn btn-secondary me-2">Annulla</button>
+                    <button type="submit" class="btn btn-primary">Salva Modifiche</button>
+                </div>
+            </form>
+        </div>
+        {% endif %}
+        
+        {% if modello_utilizzato %}
+        <div class="mt-3 p-2 border-top">
+            <p class="text-muted small mb-0">
+                <strong>Modello utilizzato per la generazione:</strong> 
+                <span class="ai-provider {% if 'deepseek' in modello_utilizzato %}text-primary{% else %}text-success{% endif %}">{{ modello_utilizzato }}</span>
+            </p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-light">
+        <h3 class="card-title h5 mb-0">Struttura del Capitolo</h3>
+    </div>
+    <div class="card-body">
+        <h4>{{ capitolo.titolo }}</h4>
+        <ul>
+            {% for sottocapitolo in capitolo.sottocapitoli %}
+            <li>{{ sottocapitolo.titolo }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<div class="d-flex justify-content-between mt-4">
+    {% set prev_capitolo = None %}
+    {% set next_capitolo = None %}
+    {% set found_current = False %}
+    
+    {% for cap in scaletta.capitoli %}
+        {% if found_current %}
+            {% if not next_capitolo %}
+                {% set next_capitolo = cap %}
+            {% endif %}
+        {% endif %}
+        
+        {% if cap.id == capitolo_id %}
+            {% set found_current = True %}
+        {% elif not found_current %}
+            {% set prev_capitolo = cap %}
+        {% endif %}
+    {% endfor %}
+    
+    <div>
+        {% if prev_capitolo %}
+        <a href="/corso/{{ corso_id }}/capitolo/{{ prev_capitolo.id }}" class="btn btn-outline-primary">
+            <i class="bi bi-arrow-left"></i> {{ prev_capitolo.titolo }}
+        </a>
+        {% endif %}
+    </div>
+    
+    <div>
+        {% if next_capitolo %}
+        <a href="/corso/{{ corso_id }}/capitolo/{{ next_capitolo.id }}" class="btn btn-outline-primary">
+            {{ next_capitolo.titolo }} <i class="bi bi-arrow-right"></i>
+        </a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/github-markdown-css@5.1.0/github-markdown.min.css">
+<style>
+    .markdown-content {
+        padding: 1rem;
+    }
+    
+    .markdown-content h1, 
+    .markdown-content h2, 
+    .markdown-content h3, 
+    .markdown-content h4, 
+    .markdown-content h5, 
+    .markdown-content h6 {
+        margin-top: 1.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .markdown-content h2 {
+        border-bottom: 1px solid #e9ecef;
+        padding-bottom: 0.5rem;
+    }
+    
+    .markdown-content h3 {
+        margin-top: 1.8rem;
+        color: #495057;
+    }
+    
+    .markdown-content p {
+        margin-bottom: 1rem;
+        text-align: justify;
+        line-height: 1.6;
+    }
+    
+    .markdown-content ul,
+    .markdown-content ol {
+        margin-bottom: 1.2rem;
+        padding-left: 1.5rem;
+    }
+    
+    .markdown-content li {
+        margin-bottom: 0.5rem;
+    }
+    
+    .markdown-content pre {
+        background-color: #f8f9fa;
+        padding: 1rem;
+        border-radius: 5px;
+        overflow-x: auto;
+    }
+    
+    .markdown-content blockquote {
+        border-left: 4px solid #e9ecef;
+        padding-left: 1rem;
+        margin-left: 0;
+        color: #6c757d;
+    }
+    
+    .markdown-content img {
+        max-width: 100%;
+        height: auto;
+    }
+    
+    /* Fix per formattazione inconsistente */
+    .markdown-content p + h2,
+    .markdown-content p + h3 {
+        margin-top: 2rem;
+    }
+    
+    .markdown-content ul + h2,
+    .markdown-content ol + h2 {
+        margin-top: 2rem;
+    }
+</style>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/marked@4.0.0/marked.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Configura marked.js per una formattazione più consistente
+    marked.setOptions({
+        gfm: true,
+        breaks: false,
+        pedantic: false,
+        sanitize: false,
+        smartLists: true,
+        smartypants: true,
+        headerIds: true,
+        mangle: true
+    });
+    
+    // Gestione del rendering Markdown
+    function renderMarkdown() {
+        const contenutoElements = document.querySelectorAll('.markdown-content');
+        contenutoElements.forEach(element => {
+            // Non riprocessiamo se già processato
+            if (element.getAttribute('data-processed') === 'true') return;
+            
+            // Ottieni il contenuto
+            const markdownText = element.textContent.trim();
+            if (markdownText) {
+                // Pre-processing per rimuovere tag markdown non necessari
+                let processedText = markdownText
+                    .replace(/^```markdown\s*\n/i, '')  // Rimuovi tag ```markdown iniziale
+                    .replace(/^```\s*markdown\s*\n/i, '')  // Variante con spazi
+                    .replace(/\n\s*```\s*$/m, '');  // Rimuovi tag di chiusura se presente
+                
+                // Rendiamo il Markdown in HTML
+                element.innerHTML = marked.parse(processedText);
+                element.setAttribute('data-processed', 'true');
+                
+                // Non distinguiamo più tra provider diversi, utilizziamo uno stile uniforme
+                // poiché il markdown è stato standardizzato nel backend
+            }
+        });
+    }
+    
+    // Renderizza il markdown iniziale
+    renderMarkdown();
+    
+    // Gestione della generazione del contenuto
+    const btnGeneraContenuto = document.getElementById('generaContenuto');
+    const loadingContenuto = document.getElementById('loadingContenuto');
+    const contenutoCapitolo = document.getElementById('contenutoCapitolo');
+    const contenutoMarkdown = document.getElementById('contenuto-markdown');
+    
+    if (btnGeneraContenuto) {
+        btnGeneraContenuto.addEventListener('click', function() {
+            // Mostra il loader e nascondi il pulsante
+            btnGeneraContenuto.parentElement.parentElement.classList.add('d-none');
+            loadingContenuto.classList.remove('d-none');
+            
+            // Chiama l'API per generare il contenuto
+            fetch('/api/corso/{{ corso_id }}/capitolo/{{ capitolo_id }}/genera-contenuto', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Errore nella generazione del contenuto');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Aggiorna la UI con il contenuto generato
+                contenutoMarkdown.innerHTML = marked.parse(data.contenuto);
+                contenutoMarkdown.setAttribute('data-processed', 'true');
+                contenutoMarkdown.classList.remove('d-none');
+                
+                // Aggiorna il textarea per l'editor
+                document.getElementById('contenuto-textarea').value = data.contenuto;
+                
+                // Mostra il contenitore del contenuto
+                loadingContenuto.classList.add('d-none');
+                contenutoCapitolo.classList.remove('d-none');
+                
+                // Aggiungi l'informazione sul modello utilizzato se disponibile
+                if (data.modello_utilizzato) {
+                    let providerClass = data.modello_utilizzato.includes('deepseek') ? 'text-primary' : 'text-success';
+                    let modelInfoHtml = `
+                        <div class="mt-3 p-2 border-top">
+                            <p class="text-muted small mb-0">
+                                <strong>Modello utilizzato per la generazione:</strong> 
+                                <span class="ai-provider ${providerClass}">${data.modello_utilizzato}</span>
+                            </p>
+                        </div>
+                    `;
+                    contenutoCapitolo.querySelector('.card-body').insertAdjacentHTML('beforeend', modelInfoHtml);
+                }
+                
+                // Mostra un messaggio di successo
+                const notifica = document.createElement('div');
+                notifica.className = 'alert alert-success alert-dismissible fade show mt-3';
+                notifica.innerHTML = `
+                    Contenuto generato con successo!
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                `;
+                document.querySelector('.card-body').prepend(notifica);
+                
+                // Auto-chiudi l'alert dopo 5 secondi
+                setTimeout(() => {
+                    notifica.classList.remove('show');
+                    setTimeout(() => notifica.remove(), 500);
+                }, 5000);
+                
+                // Non ricaricare più la pagina automaticamente
+                // Così il contenuto rimarrà visibile
+            })
+            .catch(error => {
+                console.error('Errore:', error);
+                loadingContenuto.classList.add('d-none');
+                alert('Si è verificato un errore durante la generazione del contenuto. Riprova più tardi.');
+                
+                // Rimostriamo il pulsante
+                btnGeneraContenuto.parentElement.parentElement.classList.remove('d-none');
+            });
+        });
+    }
+    
+    // Gestione dell'editing del contenuto
+    const btnEditaContenuto = document.getElementById('editaContenuto');
+    const btnAnnullaEdit = document.getElementById('annulla-edit');
+    const contentViewer = document.getElementById('contenuto-markdown');
+    const contentEditor = document.getElementById('editor-contenuto');
+    
+    if (btnEditaContenuto) {
+        btnEditaContenuto.addEventListener('click', function() {
+            contentViewer.classList.add('d-none');
+            contentEditor.classList.remove('d-none');
+        });
+    }
+    
+    if (btnAnnullaEdit) {
+        btnAnnullaEdit.addEventListener('click', function() {
+            contentEditor.classList.add('d-none');
+            contentViewer.classList.remove('d-none');
+        });
+    }
+    
+    // Gestione del form di modifica
+    const formEditContenuto = document.getElementById('form-edit-contenuto');
+    if (formEditContenuto) {
+        formEditContenuto.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Ottieni il contenuto dal textarea
+            const contenuto = document.getElementById('contenuto-textarea').value;
+            
+            // Mostra un'indicazione di caricamento
+            const submitButton = this.querySelector('button[type="submit"]');
+            const originalText = submitButton.innerHTML;
+            submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Salvataggio...';
+            submitButton.disabled = true;
+            
+            // Invia i dati al server
+            fetch(`/api/corso/{{ corso_id }}/capitolo/{{ capitolo_id }}/contenuto/edit`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ contenuto: contenuto })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Errore durante il salvataggio del contenuto');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Ripristina il pulsante
+                submitButton.innerHTML = originalText;
+                submitButton.disabled = false;
+                
+                if (data.success) {
+                    // Aggiorna il contenuto visualizzato
+                    contentViewer.innerHTML = marked.parse(contenuto);
+                    contentViewer.setAttribute('data-processed', 'true');
+                    
+                    // Nascondi l'editor e mostra il visualizzatore
+                    contentEditor.classList.add('d-none');
+                    contentViewer.classList.remove('d-none');
+                    
+                    // Mostra un messaggio di successo
+                    const notifica = document.createElement('div');
+                    notifica.className = 'alert alert-success alert-dismissible fade show mt-3';
+                    notifica.innerHTML = `
+                        Contenuto aggiornato con successo!
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    `;
+                    document.querySelector('.card-body').prepend(notifica);
+                    
+                    // Auto-chiudi l'alert dopo 5 secondi
+                    setTimeout(() => {
+                        notifica.classList.remove('show');
+                        setTimeout(() => notifica.remove(), 500);
+                    }, 5000);
+                } else {
+                    // Mostra un messaggio di errore
+                    alert(data.message || 'Errore durante il salvataggio del contenuto');
+                }
+            })
+            .catch(error => {
+                console.error('Errore:', error);
+                submitButton.innerHTML = originalText;
+                submitButton.disabled = false;
+                alert('Si è verificato un errore durante il salvataggio. Riprova più tardi.');
+            });
+        });
+    }
+    
+    // Gestione della rigenerazione del contenuto
+    const btnRigeneraContenuto = document.getElementById('rigeneraContenuto');
+    if (btnRigeneraContenuto) {
+        btnRigeneraContenuto.addEventListener('click', function() {
+            if (confirm('Sei sicuro di voler rigenerare il contenuto? Le modifiche non salvate andranno perse.')) {
+                // Mostra un'indicazione di caricamento
+                btnRigeneraContenuto.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Rigenerazione...';
+                btnRigeneraContenuto.disabled = true;
+                
+                // Esegui la chiamata API per rigenerare il contenuto
+                fetch(`/api/corso/{{ corso_id }}/capitolo/{{ capitolo_id }}/genera-contenuto`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Errore durante la rigenerazione del contenuto');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        // Aggiorna la pagina per mostrare il nuovo contenuto
+                        window.location.reload();
+                    } else {
+                        // Ripristina il pulsante e mostra un messaggio di errore
+                        btnRigeneraContenuto.innerHTML = 'Rigenera';
+                        btnRigeneraContenuto.disabled = false;
+                        alert(data.message || 'Errore durante la rigenerazione del contenuto');
+                    }
+                })
+                .catch(error => {
+                    console.error('Errore:', error);
+                    btnRigeneraContenuto.innerHTML = 'Rigenera';
+                    btnRigeneraContenuto.disabled = false;
+                    alert('Si è verificato un errore durante la rigenerazione. Riprova più tardi.');
+                });
+            }
+        });
+    }
+});
+</script>
+{% endblock %} 

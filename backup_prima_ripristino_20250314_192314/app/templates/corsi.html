@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+
+{% block extra_head %}
+<!-- Template corsi.html caricato correttamente -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+<style>
+    .card-corso {
+        transition: transform 0.3s, box-shadow 0.3s;
+        margin-bottom: 20px;
+    }
+    
+    .card-corso:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .corso-completo {
+        border-left: 5px solid #198754;
+    }
+    
+    .corso-in-progress {
+        border-left: 5px solid #ffc107;
+    }
+    
+    .corso-non-iniziato {
+        border-left: 5px solid #6c757d;
+    }
+    
+    .progress {
+        height: 10px;
+    }
+    
+    .filtro-corsi {
+        margin-bottom: 20px;
+    }
+    
+    .corso-azioni {
+        margin-top: 15px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12 mb-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2>I Miei Corsi</h2>
+                <a href="/nuovo-corso" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> Nuovo Corso
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row filtro-corsi">
+        <div class="col-md-6">
+            <div class="input-group">
+                <input type="text" id="cercaCorso" class="form-control" placeholder="Cerca per titolo...">
+                <button class="btn btn-outline-secondary" type="button" id="btnCerca">
+                    <i class="bi bi-search"></i>
+                </button>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="btn-group float-end" role="group">
+                <button type="button" class="btn btn-outline-secondary active filter-btn" data-filter="all">Tutti</button>
+                <button type="button" class="btn btn-outline-success filter-btn" data-filter="completo">Completati</button>
+                <button type="button" class="btn btn-outline-warning filter-btn" data-filter="in-progress">In Corso</button>
+                <button type="button" class="btn btn-outline-secondary filter-btn" data-filter="non-iniziato">Non Iniziati</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row" id="listaCorsi">
+        {% if corsi|length == 0 %}
+            <div class="col-12 text-center py-5">
+                <div class="p-5 bg-light rounded">
+                    <h3>Non hai ancora creato nessun corso</h3>
+                    <p class="lead">Inizia creando il tuo primo corso con l'intelligenza artificiale!</p>
+                    <a href="/nuovo-corso" class="btn btn-primary btn-lg">Crea il Primo Corso</a>
+                </div>
+            </div>
+        {% else %}
+            {% for corso in corsi %}
+                {% set percentuale = percentuale_completamento.get(corso.id, 0) %}
+                {% set stato_classe = "corso-non-iniziato" %}
+                {% set stato_testo = "Non Iniziato" %}
+                {% set stato_badge_classe = "bg-secondary" %}
+                
+                {% if percentuale == 100 %}
+                    {% set stato_classe = "corso-completo" %}
+                    {% set stato_testo = "Completato" %}
+                    {% set stato_badge_classe = "bg-success" %}
+                {% elif percentuale > 0 %}
+                    {% set stato_classe = "corso-in-progress" %}
+                    {% set stato_testo = "In Corso" %}
+                    {% set stato_badge_classe = "bg-warning text-dark" %}
+                {% endif %}
+                
+                <div class="col-md-6 corso-item" data-stato="{{ 'completo' if percentuale == 100 else 'in-progress' if percentuale > 0 else 'non-iniziato' }}" data-corso-id="{{ corso.id }}">
+                    <div class="card {{ stato_classe }} card-corso">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <h5 class="card-title">{{ corso.titolo }}</h5>
+                                <span class="badge {{ stato_badge_classe }}">{{ stato_testo }}</span>
+                            </div>
+                            <p class="card-text text-muted small">{{ corso.data_creazione }}</p>
+                            <p class="card-text">{{ corso.descrizione|truncate(100) }}</p>
+                            
+                            <div class="progress mb-1">
+                                <div class="progress-bar" role="progressbar" style="width: {{ percentuale }}%;" 
+                                     aria-valuenow="{{ percentuale }}" aria-valuemin="0" aria-valuemax="100">{{ percentuale }}%</div>
+                            </div>
+                            <p class="text-muted small text-end">{{ capitoli_generati.get(corso.id, 0) }}/{{ num_capitoli.get(corso.id, 0) }} capitoli generati</p>
+                            
+                            <div class="corso-azioni">
+                                <a href="/corso/{{ corso.id }}" class="btn btn-sm btn-outline-primary me-1">
+                                    <i class="bi bi-info-circle"></i> Dettagli
+                                </a>
+                                {% if percentuale < 100 and percentuale > 0 %}
+                                <a href="/corso/{{ corso.id }}/generazione" class="btn btn-sm btn-outline-warning me-1">
+                                    <i class="bi bi-pencil-square"></i> Continua
+                                </a>
+                                {% endif %}
+                                {% if percentuale == 0 %}
+                                <a href="/corso/{{ corso.id }}/scaletta" class="btn btn-sm btn-outline-secondary me-1">
+                                    <i class="bi bi-list-check"></i> Genera Scaletta
+                                </a>
+                                {% endif %}
+                                {% if percentuale == 100 %}
+                                <a href="/corso/{{ corso.id }}/finalizza" class="btn btn-sm btn-outline-success">
+                                    <i class="bi bi-file-earmark-arrow-down"></i> Esporta
+                                </a>
+                                {% endif %}
+                                
+                                <button type="button" class="btn btn-sm btn-outline-danger elimina-corso-modal" data-bs-toggle="modal" data-bs-target="#eliminaCorsoModal" data-corso-id="{{ corso.id }}" data-corso-titolo="{{ corso.parametri.titolo }}">
+                                    <i class="bi bi-trash"></i> Elimina
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Funzionalità di ricerca
+    const inputCerca = document.getElementById('cercaCorso');
+    const btnCerca = document.getElementById('btnCerca');
+    const listaCorsi = document.querySelectorAll('.corso-item');
+    
+    function cercaCorsi() {
+        const testoCerca = inputCerca.value.toLowerCase();
+        
+        listaCorsi.forEach(corso => {
+            const titolo = corso.querySelector('.card-title').textContent.toLowerCase();
+            const descrizione = corso.querySelector('.card-text:not(.text-muted)').textContent.toLowerCase();
+            
+            if (titolo.includes(testoCerca) || descrizione.includes(testoCerca)) {
+                corso.style.display = 'block';
+            } else {
+                corso.style.display = 'none';
+            }
+        });
+    }
+    
+    btnCerca.addEventListener('click', cercaCorsi);
+    inputCerca.addEventListener('keyup', function(event) {
+        if (event.key === 'Enter') {
+            cercaCorsi();
+        }
+    });
+    
+    // Funzionalità di filtro
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    
+    filterButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            // Gestione stato attivo dei pulsanti
+            filterButtons.forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            
+            const filtro = this.getAttribute('data-filter');
+            
+            listaCorsi.forEach(corso => {
+                if (filtro === 'all' || corso.getAttribute('data-stato') === filtro) {
+                    corso.style.display = 'block';
+                } else {
+                    corso.style.display = 'none';
+                }
+            });
+        });
+    });
+    
+    // Gestione eliminazione corso
+    const eliminaButtons = document.querySelectorAll('.elimina-corso-modal');
+    const modal = new bootstrap.Modal(document.getElementById('eliminaCorsoModal'));
+    const nomeCorsoSpan = document.getElementById('nomeCorsoEliminazione');
+    const eliminaForm = document.getElementById('eliminaCorsoForm');
+    
+    eliminaButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const corsoId = this.getAttribute('data-corso-id');
+            const titoloCorso = this.getAttribute('data-corso-titolo');
+            
+            // Imposta il titolo del corso nel modal
+            nomeCorsoSpan.textContent = titoloCorso;
+            
+            // Imposta l'action del form
+            eliminaForm.action = `/corso/${corsoId}/elimina`;
+            
+            // Mostra il modal
+            modal.show();
+        });
+    });
+});
+</script>
+{% endblock %}
+
+<!-- Modal di conferma eliminazione -->
+<div class="modal fade" id="eliminaCorsoModal" tabindex="-1" aria-labelledby="eliminaCorsoModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="eliminaCorsoModalLabel">Conferma eliminazione</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Sei sicuro di voler eliminare il corso "<span id="nomeCorsoEliminazione"></span>"?</p>
+                <p class="text-danger"><strong>Attenzione:</strong> Questa operazione non può essere annullata e tutti i contenuti del corso verranno persi.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <form id="eliminaCorsoForm" method="POST" action="">
+                    <button type="submit" class="btn btn-danger">Elimina</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div> 

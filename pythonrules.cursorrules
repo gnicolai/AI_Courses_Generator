@@ -1,0 +1,54 @@
+# Regole per il progetto AI Course Generator
+# Queste regole sono state create in base ai problemi riscontrati e alle soluzioni implementate
+
+# Regole generali per il progetto
+- Assicurati che tutti gli endpoint FastAPI siano definiti PRIMA del blocco `if __name__ == "__main__"` nel file main.py
+- Verifica sempre che tutte le funzioni utilizzate siano correttamente importate nei file che le utilizzano
+- Utilizza il middleware di gestione delle eccezioni per catturare e loggare tutti gli errori
+
+# Gestione delle API esterne (OpenAI)
+- Utilizza sempre il modulo `model_support.py` per gestire le differenze tra i vari modelli di AI
+- Implementa sempre un meccanismo di retry con backoff esponenziale per le chiamate API
+- Gestisci separatamente i modelli che supportano il ruolo "system" e quelli che non lo supportano
+- Imposta timeout adeguati (almeno 180 secondi) per le chiamate API che generano contenuti lunghi
+- Cattura e gestisci specificamente gli errori di rete (TimeoutException, ReadTimeout, ConnectTimeout, RemoteProtocolError)
+
+# Gestione del database
+- Utilizza sempre transazioni per operazioni che modificano più tabelle (come l'eliminazione di un corso)
+- Verifica sempre che le strutture dati restituite dal database siano valide prima di accedervi
+- Implementa controlli di sicurezza per evitare errori quando i dati sono mancanti o malformati
+
+# Gestione delle dipendenze esterne
+- Verifica la presenza di dipendenze esterne (come Pandoc) prima di utilizzarle
+- Implementa meccanismi di download automatico quando possibile
+- Fornisci messaggi di errore chiari con istruzioni su come installare manualmente le dipendenze mancanti
+- Offri sempre alternative quando una funzionalità non è disponibile (es. esportazione in HTML invece di DOCX)
+
+# Struttura del codice
+- Mantieni la logica di business nei controller (app/api/controllers.py)
+- Mantieni le operazioni di database nel modulo database (app/models/database.py)
+- Mantieni la configurazione dei client AI nel modulo ai_client.py
+- Utilizza moduli separati per funzionalità specifiche (come model_support.py per la gestione dei modelli)
+
+# Gestione degli errori
+- Logga sempre gli errori con dettagli sufficienti per il debug
+- Cattura specificamente i diversi tipi di eccezioni e fornisci messaggi di errore appropriati
+- Implementa meccanismi di fallback quando una funzionalità fallisce
+- Utilizza try/except per gestire gli errori in modo granulare
+
+# Ottimizzazione delle prestazioni
+- Implementa meccanismi di cache per ridurre le chiamate API costose
+- Utilizza asincronia (async/await) per le operazioni di I/O
+- Implementa timeout adeguati per evitare che le richieste bloccanti blocchino l'intera applicazione
+
+# Sicurezza
+- Valida sempre gli input dell'utente
+- Utilizza parametri con tipo per le funzioni FastAPI
+- Implementa controlli di accesso appropriati per le operazioni sensibili
+- Non esporre informazioni sensibili nei messaggi di errore
+
+# Interfaccia utente
+- Fornisci sempre feedback chiari all'utente quando un'operazione fallisce
+- Implementa conferme per operazioni distruttive (come l'eliminazione di un corso)
+- Utilizza reindirizzamenti appropriati dopo le operazioni POST
+- Assicurati che l'interfaccia utente sia reattiva anche durante operazioni lunghe 

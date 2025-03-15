@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-body">
+                <h2 class="card-title">Benvenuto nel Generatore di Corsi AI</h2>
+                <p class="card-text">
+                    Questo strumento ti permette di creare facilmente corsi completi utilizzando l'intelligenza artificiale.
+                    Basta definire i parametri del tuo corso e il sistema genererà automaticamente:
+                </p>
+                <ul>
+                    <li>Una scaletta dettagliata con capitoli e sottocapitoli</li>
+                    <li>Contenuti completi per ciascun capitolo</li>
+                    <li>Un formato professionale e pronto all'uso</li>
+                </ul>
+                <a href="/nuovo-corso" class="btn btn-primary btn-lg">Crea un Nuovo Corso</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h3 class="card-title h5 mb-0">Come Funziona</h3>
+            </div>
+            <div class="card-body">
+                <ol>
+                    <li>Definisci i parametri del corso</li>
+                    <li>Genera la scaletta di capitoli</li>
+                    <li>Modifica la scaletta se necessario</li>
+                    <li>Genera i contenuti di ogni capitolo</li>
+                    <li>Modifica i contenuti se necessario</li>
+                    <li>Finalizza il corso nel formato desiderato</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

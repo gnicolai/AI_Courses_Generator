@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <div class="d-flex justify-content-between align-items-center">
+        <h2>Generazione Contenuti: {{ titolo_corso }}</h2>
+        <div>
+            <a href="/corso/{{ corso_id }}/scaletta" class="btn btn-outline-primary me-2">Torna alla Scaletta</a>
+            <a href="/corso/{{ corso_id }}" class="btn btn-outline-secondary">Torna al Corso</a>
+        </div>
+    </div>
+</div>
+
+<div class="alert alert-info">
+    <h4 class="alert-heading">Generazione Progressiva</h4>
+    <p>
+        Da questa pagina puoi generare i contenuti del corso in modo progressivo.
+        Ti consigliamo di procedere in ordine, generando prima i capitoli iniziali.
+        Questo permetterà all'AI di mantenere la coerenza tra i vari capitoli, utilizzando come contesto il contenuto dei capitoli precedenti.
+    </p>
+</div>
+
+<div class="progress mb-4">
+    <div class="progress-bar" role="progressbar" style="width: {{ percentuale_completamento }}%;" aria-valuenow="{{ percentuale_completamento }}" aria-valuemin="0" aria-valuemax="100">{{ percentuale_completamento }}%</div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h3 class="card-title h5 mb-0">Stato dei Capitoli</h3>
+    </div>
+    <div class="card-body">
+        <ul class="list-group">
+            {% for capitolo in capitoli %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                    <h5>{{ capitolo.titolo }}</h5>
+                    <p class="mb-0 text-muted small">
+                        {{ capitolo.num_sottoargomenti }} sottocapitoli
+                    </p>
+                </div>
+                
+                <div class="d-flex align-items-center">
+                    {% if capitolo.generato %}
+                    <span class="badge bg-success me-2">Generato</span>
+                    {% else %}
+                    <span class="badge bg-warning me-2">Non generato</span>
+                    {% endif %}
+                    
+                    <a href="/corso/{{ corso_id }}/capitolo/{{ capitolo.id }}" class="btn btn-primary btn-sm">
+                        {% if capitolo.generato %}
+                        Visualizza/Modifica
+                        {% else %}
+                        Genera
+                        {% endif %}
+                    </a>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+{% if percentuale_completamento == 100 %}
+<div class="alert alert-success">
+    <h4 class="alert-heading">Corso Completato!</h4>
+    <p>Tutti i capitoli sono stati generati. Ora puoi procedere alla finalizzazione del corso.</p>
+</div>
+
+<div class="d-grid gap-2 mt-4">
+    <a href="/corso/{{ corso_id }}/finalizza" class="btn btn-success btn-lg">
+        <i class="bi bi-check-circle"></i> Finalizza e Esporta il Corso
+    </a>
+</div>
+{% endif %}
+{% endblock %} 

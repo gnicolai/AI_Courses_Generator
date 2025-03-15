@@ -1,0 +1,552 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="mb-4">
+    <div class="d-flex justify-content-between align-items-center">
+        <h2>{{ corso_titolo }}</h2>
+        <a href="/corso/{{ corso_id }}" class="btn btn-outline-primary">Torna al Corso</a>
+    </div>
+    <div class="alert alert-info">
+        <p>Di seguito è riportata la scaletta generata per il tuo corso. Puoi modificare i titoli dei capitoli e sottocapitoli o riorganizzarli secondo le tue esigenze.</p>
+        <p><strong>Riepilogo:</strong> La scaletta contiene <strong>{{ scaletta.capitoli|length }}</strong> capitoli e 
+        {% set total_sottocapitoli = 0 %}
+        {% for capitolo in scaletta.capitoli %}
+            {% set total_sottocapitoli = total_sottocapitoli + capitolo.sottocapitoli|length %}
+        {% endfor %}
+        <strong>{{ total_sottocapitoli }}</strong> sottocapitoli.</p>
+        
+        {% if requisiti_specifici %}
+        <hr>
+        <div class="mt-2">
+            <p><strong>Requisiti specifici considerati nella generazione:</strong></p>
+            <p class="text-muted">{{ requisiti_specifici }}</p>
+        </div>
+        {% endif %}
+        
+        {% if stile_scrittura %}
+        <div class="mt-2">
+            <p><strong>Stile di scrittura richiesto:</strong></p>
+            <p class="text-muted">{{ stile_scrittura }}</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h3 class="card-title h5 mb-0">Scaletta del Corso</h3>
+    </div>
+    <div class="card-body">
+        <div id="scaletta-editor">
+            <form id="form-scaletta" method="post" action="/api/corsi/{{ corso_id }}/scaletta/edit">
+                <div id="scaletta-container">
+                    {% for capitolo in scaletta.capitoli %}
+                    <div class="capitolo-item mb-4" data-id="{{ capitolo.id }}">
+                        <div class="d-flex align-items-center mb-2">
+                            <input type="text" class="form-control form-control-lg capitolo-titolo" 
+                                   value="{{ capitolo.titolo }}" 
+                                   name="capitoli[{{ loop.index0 }}][titolo]">
+                            <input type="hidden" name="capitoli[{{ loop.index0 }}][id]" value="{{ capitolo.id }}">
+                            <input type="hidden" name="capitoli[{{ loop.index0 }}][ordine]" value="{{ capitolo.ordine }}">
+                            <div class="btn-group ms-2">
+                                <a href="/corso/{{ corso_id }}/capitolo/{{ capitolo.id }}" class="btn btn-primary">
+                                    <i class="bi bi-eye"></i> Visualizza
+                                </a>
+                                <button type="button" class="btn btn-outline-secondary move-up">▲</button>
+                                <button type="button" class="btn btn-outline-secondary move-down">▼</button>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <textarea class="form-control capitolo-descrizione" 
+                                     name="capitoli[{{ loop.index0 }}][descrizione]"
+                                     rows="2"
+                                     placeholder="Descrizione del capitolo">{{ capitolo.descrizione }}</textarea>
+                        </div>
+                        
+                        <div class="sottocapitoli-container ms-4">
+                            {% set capitolo_index = loop.index0 %}
+                            {% for sottocapitolo in capitolo.sottocapitoli %}
+                            <div class="sottocapitolo-item mb-3" data-id="{{ sottocapitolo.id }}">
+                                <div class="d-flex align-items-center mb-2">
+                                    <input type="text" class="form-control sottocapitolo-titolo" 
+                                           value="{{ sottocapitolo.titolo }}"
+                                           name="capitoli[{{ capitolo_index }}][sottocapitoli][{{ loop.index0 }}][titolo]">
+                                    <input type="hidden" 
+                                           name="capitoli[{{ capitolo_index }}][sottocapitoli][{{ loop.index0 }}][id]"
+                                           value="{{ sottocapitolo.id }}">
+                                    <input type="hidden" 
+                                           name="capitoli[{{ capitolo_index }}][sottocapitoli][{{ loop.index0 }}][ordine]"
+                                           value="{{ sottocapitolo.ordine }}">
+                                    <div class="btn-group ms-2">
+                                        <button type="button" class="btn btn-outline-secondary move-up-sottocap">▲</button>
+                                        <button type="button" class="btn btn-outline-secondary move-down-sottocap">▼</button>
+                                    </div>
+                                </div>
+
+                                {% if sottocapitolo.punti_chiave %}
+                                <div class="punti-chiave small mb-2">
+                                    <div class="fw-bold text-muted mb-1">Punti chiave:</div>
+                                    {% set sottocapitolo_index = loop.index0 %}
+                                    <ul class="mb-0 punti-lista">
+                                        {% for punto in sottocapitolo.punti_chiave %}
+                                        <li class="punto-item mb-1">
+                                            <div class="input-group input-group-sm">
+                                                <input type="text" class="form-control form-control-sm punto-testo" 
+                                                       value="{{ punto }}"
+                                                       name="capitoli[{{ capitolo_index }}][sottocapitoli][{{ sottocapitolo_index }}][punti_chiave][{{ loop.index0 }}]">
+                                                <button type="button" class="btn btn-outline-danger btn-sm remove-punto">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                    <button type="button" class="btn btn-sm btn-outline-info mt-1 add-punto">
+                                        <i class="bi bi-plus-circle"></i> Aggiungi punto
+                                    </button>
+                                </div>
+                                {% else %}
+                                <div class="punti-chiave small mb-2">
+                                    <div class="fw-bold text-muted mb-1">Punti chiave:</div>
+                                    {% set sottocapitolo_index = loop.index0 %}
+                                    <ul class="mb-0 punti-lista">
+                                        <li class="punto-item mb-1">
+                                            <div class="input-group input-group-sm">
+                                                <input type="text" class="form-control form-control-sm punto-testo" 
+                                                       value="Nuovo punto chiave"
+                                                       name="capitoli[{{ capitolo_index }}][sottocapitoli][{{ sottocapitolo_index }}][punti_chiave][0]">
+                                                <button type="button" class="btn btn-outline-danger btn-sm remove-punto">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                        </li>
+                                    </ul>
+                                    <button type="button" class="btn btn-sm btn-outline-info mt-1 add-punto">
+                                        <i class="bi bi-plus-circle"></i> Aggiungi punto
+                                    </button>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                            
+                            <div class="mt-2 mb-3">
+                                <button type="button" class="btn btn-sm btn-outline-success add-sottocapitolo">
+                                    <i class="bi bi-plus-circle"></i> Aggiungi Sottocapitolo
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <div class="d-flex justify-content-between mt-4">
+                    <button type="button" class="btn btn-success add-capitolo">
+                        <i class="bi bi-plus-circle"></i> Aggiungi Capitolo
+                    </button>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Salva Modifiche
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="d-grid gap-2 mt-4">
+    <a href="/corso/{{ corso_id }}/generazione" class="btn btn-success btn-lg">
+        Procedi alla Generazione dei Contenuti
+    </a>
+</div>
+{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Funzioni di utilità
+    function mostraNotifica(messaggio, tipo = 'success') {
+        // Crea un elemento di notifica
+        const notifica = document.createElement('div');
+        notifica.className = `alert alert-${tipo} alert-dismissible fade show`;
+        notifica.innerHTML = `
+            ${messaggio}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        
+        // Aggiungi la notifica all'inizio del contenuto
+        const contenuto = document.querySelector('.card-body');
+        contenuto.insertBefore(notifica, contenuto.firstChild);
+        
+        // Auto-chiudi dopo 5 secondi
+        setTimeout(() => {
+            notifica.classList.remove('show');
+            setTimeout(() => notifica.remove(), 500);
+        }, 5000);
+    }
+    
+    // Gestione del salvataggio
+    const formScaletta = document.getElementById('form-scaletta');
+    formScaletta.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Raccogli i dati del form
+        const formData = new FormData(formScaletta);
+        
+        // Crea un oggetto per i dati della scaletta
+        const scalettaData = {
+            capitoli: []
+        };
+        
+        // Trova tutti i capitoli
+        const capitoli = document.querySelectorAll('.capitolo-item');
+        capitoli.forEach((capitoloEl, indiceCapitolo) => {
+            const capitoloId = capitoloEl.dataset.id;
+            const titoloCapitolo = capitoloEl.querySelector('.capitolo-titolo').value;
+            
+            // Crea l'oggetto capitolo
+            const capitolo = {
+                id: capitoloId,
+                titolo: titoloCapitolo,
+                ordine: indiceCapitolo + 1,
+                descrizione: capitoloEl.querySelector('.capitolo-descrizione')?.value || '',
+                sottocapitoli: []
+            };
+            
+            // Trova i sottocapitoli di questo capitolo
+            const sottocapitoli = capitoloEl.querySelectorAll('.sottocapitolo-item');
+            sottocapitoli.forEach((sottocapitoloEl, indiceSottocapitolo) => {
+                const sottocapitoloId = sottocapitoloEl.dataset.id;
+                const titoloSottocapitolo = sottocapitoloEl.querySelector('.sottocapitolo-titolo').value;
+                
+                // Estrai i punti chiave se presenti
+                const puntiChiave = [];
+                const puntiChiaveEl = sottocapitoloEl.querySelector('.punti-lista');
+                if (puntiChiaveEl) {
+                    const items = puntiChiaveEl.querySelectorAll('.punto-item');
+                    items.forEach(item => {
+                        const punto = item.querySelector('.punto-testo').value.trim();
+                        if (punto) {
+                            puntiChiave.push(punto);
+                        }
+                    });
+                }
+                
+                // Crea l'oggetto sottocapitolo
+                const sottocapitolo = {
+                    id: sottocapitoloId,
+                    titolo: titoloSottocapitolo,
+                    ordine: indiceSottocapitolo + 1,
+                    punti_chiave: puntiChiave
+                };
+                
+                capitolo.sottocapitoli.push(sottocapitolo);
+            });
+            
+            scalettaData.capitoli.push(capitolo);
+        });
+        
+        // Invia i dati al server
+        fetch(`/api/corsi/{{ corso_id }}/scaletta/edit`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(scalettaData)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Errore nella modifica della scaletta');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                mostraNotifica('Scaletta aggiornata con successo!');
+            } else {
+                mostraNotifica(data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Errore:', error);
+            mostraNotifica('Si è verificato un errore durante il salvataggio della scaletta.', 'danger');
+        });
+    });
+    
+    // Gestione dello spostamento dei capitoli
+    document.querySelectorAll('.move-up').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const capitoloItem = this.closest('.capitolo-item');
+            const prevCapitolo = capitoloItem.previousElementSibling;
+            
+            if (prevCapitolo && prevCapitolo.classList.contains('capitolo-item')) {
+                capitoloItem.parentNode.insertBefore(capitoloItem, prevCapitolo);
+            }
+        });
+    });
+    
+    document.querySelectorAll('.move-down').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const capitoloItem = this.closest('.capitolo-item');
+            const nextCapitolo = capitoloItem.nextElementSibling;
+            
+            if (nextCapitolo && nextCapitolo.classList.contains('capitolo-item')) {
+                capitoloItem.parentNode.insertBefore(nextCapitolo, capitoloItem);
+            }
+        });
+    });
+    
+    // Gestione dello spostamento dei sottocapitoli
+    document.querySelectorAll('.move-up-sottocap').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const sottocapitoloItem = this.closest('.sottocapitolo-item');
+            const prevSottocapitolo = sottocapitoloItem.previousElementSibling;
+            
+            if (prevSottocapitolo && prevSottocapitolo.classList.contains('sottocapitolo-item')) {
+                sottocapitoloItem.parentNode.insertBefore(sottocapitoloItem, prevSottocapitolo);
+            }
+        });
+    });
+    
+    document.querySelectorAll('.move-down-sottocap').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const sottocapitoloItem = this.closest('.sottocapitolo-item');
+            const nextSottocapitolo = sottocapitoloItem.nextElementSibling;
+            
+            if (nextSottocapitolo && nextSottocapitolo.classList.contains('sottocapitolo-item')) {
+                sottocapitoloItem.parentNode.insertBefore(nextSottocapitolo, sottocapitoloItem);
+            }
+        });
+    });
+    
+    // Aggiungi capitolo
+    const addCapitoloBtn = document.querySelector('.add-capitolo');
+    if (addCapitoloBtn) {
+        addCapitoloBtn.addEventListener('click', function() {
+            // Genera un ID unico per il nuovo capitolo
+            const nuovoId = 'cap-new-' + Date.now();
+            const numeroCapitoli = document.querySelectorAll('.capitolo-item').length + 1;
+            
+            // Crea l'HTML per il nuovo capitolo
+            const nuovoCapitoloHTML = `
+            <div class="capitolo-item mb-4" data-id="${nuovoId}">
+                <div class="d-flex align-items-center mb-2">
+                    <input type="text" class="form-control form-control-lg capitolo-titolo" 
+                           value="Nuovo Capitolo ${numeroCapitoli}" 
+                           name="capitoli[${numeroCapitoli-1}][titolo]">
+                    <input type="hidden" name="capitoli[${numeroCapitoli-1}][id]" value="${nuovoId}">
+                    <input type="hidden" name="capitoli[${numeroCapitoli-1}][ordine]" value="${numeroCapitoli}">
+                    <div class="btn-group ms-2">
+                        <button type="button" class="btn btn-outline-secondary move-up">▲</button>
+                        <button type="button" class="btn btn-outline-secondary move-down">▼</button>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <textarea class="form-control capitolo-descrizione" 
+                             name="capitoli[${numeroCapitoli-1}][descrizione]"
+                             rows="2"
+                             placeholder="Descrizione del capitolo"></textarea>
+                </div>
+                
+                <div class="sottocapitoli-container ms-4">
+                    <div class="mt-2 mb-3">
+                        <button type="button" class="btn btn-sm btn-outline-success add-sottocapitolo">
+                            <i class="bi bi-plus-circle"></i> Aggiungi Sottocapitolo
+                        </button>
+                    </div>
+                </div>
+            </div>
+            `;
+            
+            // Aggiungi il nuovo capitolo al container
+            const container = document.getElementById('scaletta-container');
+            container.insertAdjacentHTML('beforeend', nuovoCapitoloHTML);
+            
+            // Aggiungi l'event listener per il pulsante di aggiunta sottocapitolo
+            const nuovoCapitolo = container.lastElementChild;
+            const btnAggiungiSottocapitolo = nuovoCapitolo.querySelector('.add-sottocapitolo');
+            btnAggiungiSottocapitolo.addEventListener('click', aggiungiSottocapitolo);
+            
+            // Aggiungi event listener per i pulsanti di riordinamento
+            const moveUpBtn = nuovoCapitolo.querySelector('.move-up');
+            moveUpBtn.addEventListener('click', function() {
+                const capitoloItem = this.closest('.capitolo-item');
+                const prevCapitolo = capitoloItem.previousElementSibling;
+                
+                if (prevCapitolo && prevCapitolo.classList.contains('capitolo-item')) {
+                    capitoloItem.parentNode.insertBefore(capitoloItem, prevCapitolo);
+                }
+            });
+            
+            const moveDownBtn = nuovoCapitolo.querySelector('.move-down');
+            moveDownBtn.addEventListener('click', function() {
+                const capitoloItem = this.closest('.capitolo-item');
+                const nextCapitolo = capitoloItem.nextElementSibling;
+                
+                if (nextCapitolo && nextCapitolo.classList.contains('capitolo-item')) {
+                    capitoloItem.parentNode.insertBefore(nextCapitolo, capitoloItem);
+                }
+            });
+        });
+    }
+    
+    // Funzione per aggiungere un sottocapitolo
+    function aggiungiSottocapitolo() {
+        const capitoloItem = this.closest('.capitolo-item');
+        const capitoloId = capitoloItem.dataset.id;
+        const sottocapitoliContainer = capitoloItem.querySelector('.sottocapitoli-container');
+        const btnAggiungiSottocapitolo = this.parentNode;
+        
+        // Calcola l'indice del capitolo corrente tra tutti i capitoli
+        const tuttiICapitoli = Array.from(document.querySelectorAll('.capitolo-item'));
+        const indiceCapitolo = tuttiICapitoli.indexOf(capitoloItem);
+        
+        // Genera un ID unico per il nuovo sottocapitolo
+        const nuovoId = 'subcap-new-' + Date.now();
+        const numeroSottocapitoli = capitoloItem.querySelectorAll('.sottocapitolo-item').length + 1;
+        
+        // Crea l'HTML per il nuovo sottocapitolo
+        const nuovoSottocapitoloHTML = `
+        <div class="sottocapitolo-item mb-3" data-id="${nuovoId}">
+            <div class="d-flex align-items-center mb-2">
+                <input type="text" class="form-control sottocapitolo-titolo" 
+                       value="Nuovo Sottocapitolo ${numeroSottocapitoli}"
+                       name="capitoli[${indiceCapitolo}][sottocapitoli][${numeroSottocapitoli-1}][titolo]">
+                <input type="hidden" 
+                       name="capitoli[${indiceCapitolo}][sottocapitoli][${numeroSottocapitoli-1}][id]"
+                       value="${nuovoId}">
+                <input type="hidden" 
+                       name="capitoli[${indiceCapitolo}][sottocapitoli][${numeroSottocapitoli-1}][ordine]"
+                       value="${numeroSottocapitoli}">
+                <div class="btn-group ms-2">
+                    <button type="button" class="btn btn-outline-secondary move-up-sottocap">▲</button>
+                    <button type="button" class="btn btn-outline-secondary move-down-sottocap">▼</button>
+                </div>
+            </div>
+            <div class="punti-chiave small mb-2">
+                <div class="fw-bold text-muted mb-1">Punti chiave:</div>
+                <ul class="mb-0 punti-lista">
+                    <li class="punto-item mb-1">
+                        <div class="input-group input-group-sm">
+                            <input type="text" class="form-control form-control-sm punto-testo" 
+                                   value="Nuovo punto chiave"
+                                   name="capitoli[${indiceCapitolo}][sottocapitoli][${numeroSottocapitoli-1}][punti_chiave][0]">
+                            <button type="button" class="btn btn-outline-danger btn-sm remove-punto">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </li>
+                </ul>
+                <button type="button" class="btn btn-sm btn-outline-info mt-1 add-punto">
+                    <i class="bi bi-plus-circle"></i> Aggiungi punto
+                </button>
+            </div>
+        </div>
+        `;
+        
+        // Inserisci il nuovo sottocapitolo prima del pulsante di aggiunta
+        sottocapitoliContainer.insertBefore(document.createRange().createContextualFragment(nuovoSottocapitoloHTML), btnAggiungiSottocapitolo);
+        
+        // Aggiungi event listener per i pulsanti di riordinamento
+        const nuovoSottocapitolo = btnAggiungiSottocapitolo.previousElementSibling;
+        
+        const moveUpBtn = nuovoSottocapitolo.querySelector('.move-up-sottocap');
+        moveUpBtn.addEventListener('click', function() {
+            const sottocapitoloItem = this.closest('.sottocapitolo-item');
+            const prevSottocapitolo = sottocapitoloItem.previousElementSibling;
+            
+            if (prevSottocapitolo && prevSottocapitolo.classList.contains('sottocapitolo-item')) {
+                sottocapitoloItem.parentNode.insertBefore(sottocapitoloItem, prevSottocapitolo);
+            }
+        });
+        
+        const moveDownBtn = nuovoSottocapitolo.querySelector('.move-down-sottocap');
+        moveDownBtn.addEventListener('click', function() {
+            const sottocapitoloItem = this.closest('.sottocapitolo-item');
+            const nextSottocapitolo = sottocapitoloItem.nextElementSibling;
+            
+            if (nextSottocapitolo && nextSottocapitolo.classList.contains('sottocapitolo-item')) {
+                sottocapitoloItem.parentNode.insertBefore(nextSottocapitolo, sottocapitoloItem);
+            }
+        });
+        
+        // Aggiungi event listener per i pulsanti di gestione dei punti chiave
+        const addPuntoBtn = nuovoSottocapitolo.querySelector('.add-punto');
+        if (addPuntoBtn) {
+            addPuntoBtn.addEventListener('click', aggiungiPunto);
+        }
+        
+        const removePuntoBtns = nuovoSottocapitolo.querySelectorAll('.remove-punto');
+        removePuntoBtns.forEach(btn => {
+            btn.addEventListener('click', rimuoviPunto);
+        });
+    }
+    
+    // Funzione per aggiungere un punto chiave
+    function aggiungiPunto() {
+        const puntiChiaveContainer = this.closest('.punti-chiave');
+        const puntiLista = puntiChiaveContainer.querySelector('.punti-lista');
+        const sottocapitoloItem = this.closest('.sottocapitolo-item');
+        
+        // Calcola l'indice del capitolo e del sottocapitolo
+        const tuttiICapitoli = Array.from(document.querySelectorAll('.capitolo-item'));
+        const capitoloItem = sottocapitoloItem.closest('.capitolo-item');
+        const indiceCapitolo = tuttiICapitoli.indexOf(capitoloItem);
+        
+        const tuttiISottocapitoli = Array.from(capitoloItem.querySelectorAll('.sottocapitolo-item'));
+        const indiceSottocapitolo = tuttiISottocapitoli.indexOf(sottocapitoloItem);
+        
+        // Calcola il numero di punti chiave esistenti
+        const numeroPunti = puntiLista.querySelectorAll('.punto-item').length;
+        
+        // Crea l'HTML per il nuovo punto
+        const nuovoPuntoHTML = `
+        <li class="punto-item mb-1">
+            <div class="input-group input-group-sm">
+                <input type="text" class="form-control form-control-sm punto-testo" 
+                       value="Nuovo punto chiave"
+                       name="capitoli[${indiceCapitolo}][sottocapitoli][${indiceSottocapitolo}][punti_chiave][${numeroPunti}]">
+                <button type="button" class="btn btn-outline-danger btn-sm remove-punto">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        </li>
+        `;
+        
+        // Aggiungi il nuovo punto alla lista
+        puntiLista.insertAdjacentHTML('beforeend', nuovoPuntoHTML);
+        
+        // Aggiungi event listener per il pulsante di rimozione
+        const nuovoPunto = puntiLista.lastElementChild;
+        const btnRimuoviPunto = nuovoPunto.querySelector('.remove-punto');
+        btnRimuoviPunto.addEventListener('click', rimuoviPunto);
+    }
+    
+    // Funzione per rimuovere un punto chiave
+    function rimuoviPunto() {
+        const puntoItem = this.closest('.punto-item');
+        puntoItem.remove();
+    }
+    
+    // Aggiungi event listener per tutti i pulsanti di aggiunta sottocapitolo
+    document.querySelectorAll('.add-sottocapitolo').forEach(btn => {
+        btn.addEventListener('click', aggiungiSottocapitolo);
+    });
+    
+    // Aggiungi event listener per tutti i pulsanti di aggiunta punto
+    document.querySelectorAll('.add-punto').forEach(btn => {
+        btn.addEventListener('click', aggiungiPunto);
+    });
+    
+    // Aggiungi event listener per tutti i pulsanti di rimozione punto
+    document.querySelectorAll('.remove-punto').forEach(btn => {
+        btn.addEventListener('click', rimuoviPunto);
+    });
+});
+</script>
+{% endblock %} 
